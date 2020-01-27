@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -190,7 +191,13 @@ func passChallenge(c *tb.Callback) {
 		return
 	}
 
-	if c.Data == "challenge" {
+	data := "dummy"
+	dataParts := strings.Split(c.Data, "|");
+	if len(dataParts) == 2 {
+		data = dataParts[1];
+	}
+
+	if data == "challenge" {
 		passedUsers.Store(c.Sender.ID, struct{}{})
 
 		if config.PrintSuccessAndFail == "show" {
@@ -215,7 +222,7 @@ func passChallenge(c *tb.Callback) {
 		if err != nil {
 			log.Println(err)
 		}
-	} else if c.Data == "ban" {
+	} else if data == "ban" {
 		banDuration, e := getBanDuration()
 		if e != nil {
 			log.Println(e)
@@ -245,7 +252,7 @@ func passChallenge(c *tb.Callback) {
 			log.Println(err)
 		}
 
-		log.Printf("User: %v pressed dummy button %v in chat: %v", c.Sender, c.Data, c.Message.Chat)
+		log.Printf("User: %v pressed dummy button `%v` in chat: %v", c.Sender, c.Data, c.Message.Chat)
 	}
 }
 
