@@ -1,16 +1,18 @@
 # Config file for Telegram Captcha Bot
 
 # Button text
-button_text = "I'm not a robot!"
+challenge_button_text = "👍"
+ban_button_text = "👎"
+dummy_button_text = "👌"
 
 # Bot sends this message to new users
-welcome_message = "Hello! This is the spam protection system. Please press the button within 30 seconds or you will be banned!"
+welcome_message = "Нажмите 👍 чтобы избежать бана / Press 👍 to avoid ban"
 
 # Edit welcome message with this text if user passed validation
-after_success_message = "User passed the validation."
+after_success_message = "Успех / Success"
 
 # Edit welcome message with this text if user failed validation
-after_fail_message = "User didn't pass the validation and was banned."
+after_fail_message = "Забанен / Banned"
 
 # Show success and failure messages or delete them. Pick "show" or "del"
 print_success_and_fail_messages_strategy = "show"
@@ -25,13 +27,13 @@ ban_duration = "forever"
 use_socks5_proxy = "no"
 
 # Socks5 proxy server IP address
-socks5_address = "1.1.1.1"
+socks5_address = ""
 
 # Socks5 proxy server TCP port
-socks5_port = "1080"
+socks5_port = ""
 
 # Socks5 proxy server username
-socks5_login = "login"
+socks5_login = ""
 
 # Socks5 proxy server password
-socks5_password = "password"
+socks5_password = ""

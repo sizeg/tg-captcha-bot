@@ -20,7 +20,9 @@ import (
 
 // Config struct for toml config file
 type Config struct {
-	ButtonText          string `mapstructure:"button_text"`
+	ChallengeButtonText string `mapstructure:"challenge_button_text"`
+	BanButtonText       string `mapstructure:"ban_button_text"`
+	DummyButtonText     string `mapstructure:"dummy_button_text"`
 	WelcomeMessage      string `mapstructure:"welcome_message"`
 	AfterSuccessMessage string `mapstructure:"after_success_message"`
 	AfterFailMessage    string `mapstructure:"after_fail_message"`
@@ -83,6 +85,10 @@ func main() {
 		log.Printf("Healthz request from user: %v\n in chat: %v", m.Sender, m.Chat)
 	})
 
+	bot.Handle("/challange", func(m *tb.Message) {
+		challengeUser(m)
+	});
+
 	log.Println("Bot started!")
 	go func() {
 		bot.Start()
@@ -113,10 +119,26 @@ func challengeUser(m *tb.Message) {
 		log.Println(err)
 	}
 
-	inlineKeys := [][]tb.InlineButton{{tb.InlineButton{
+	dummyBtn := tb.InlineButton{
+		Unique: "dummy_btn",
+		Text: config.DummyButtonText,
+		Data: "dummy",
+	}
+	challengeBtn := tb.InlineButton{
 		Unique: "challenge_btn",
-		Text:   config.ButtonText,
-	}}}
+		Text: config.ChallengeButtonText,
+		Data: "challenge",
+	}
+	banBtn := tb.InlineButton{
+		Unique: "ban_btn",
+		Text: config.BanButtonText,
+		Data: "ban",
+	}
+	inlineKeys := [][]tb.InlineButton{
+		// @todo shuffle buttons
+		[]tb.InlineButton{banBtn,dummyBtn,challengeBtn},
+	}
+
 	challengeMsg, _ := bot.Reply(m, config.WelcomeMessage, &tb.ReplyMarkup{InlineKeyboard: inlineKeys})
 
 	n, err := strconv.ParseInt(config.WelcomeTimeout, 10, 64)
@@ -167,29 +189,63 @@ func passChallenge(c *tb.Callback) {
 		}
 		return
 	}
-	passedUsers.Store(c.Sender.ID, struct{}{})
 
-	if config.PrintSuccessAndFail == "show" {
-		_, err := bot.Edit(c.Message, config.AfterSuccessMessage)
+	if c.Data == "challenge" {
+		passedUsers.Store(c.Sender.ID, struct{}{})
+
+		if config.PrintSuccessAndFail == "show" {
+			_, err := bot.Edit(c.Message, config.AfterSuccessMessage)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if config.PrintSuccessAndFail == "del" {
+			err := bot.Delete(c.Message)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	
+		log.Printf("User: %v passed the challenge in chat: %v", c.Sender, c.Message.Chat)
+		newChatMember := tb.ChatMember{User: c.Sender, RestrictedUntil: tb.Forever(), Rights: tb.Rights{CanSendMessages: true}}
+		err := bot.Promote(c.Message.Chat, &newChatMember)
 		if err != nil {
 			log.Println(err)
 		}
-	} else if config.PrintSuccessAndFail == "del" {
-		err := bot.Delete(c.Message)
+		err = bot.Respond(c, &tb.CallbackResponse{Text: "Validation passed!"})
 		if err != nil {
 			log.Println(err)
 		}
-	}
+	} else if c.Data == "ban" {
+		banDuration, e := getBanDuration()
+		if e != nil {
+			log.Println(e)
+		}
+		chatMember := tb.ChatMember{User: c.Sender, RestrictedUntil: banDuration}
+		err := bot.Ban(c.Message.Chat, &chatMember)
+		if err != nil {
+			log.Println(err)
+		}
 
-	log.Printf("User: %v passed the challenge in chat: %v", c.Sender, c.Message.Chat)
-	newChatMember := tb.ChatMember{User: c.Sender, RestrictedUntil: tb.Forever(), Rights: tb.Rights{CanSendMessages: true}}
-	err := bot.Promote(c.Message.Chat, &newChatMember)
-	if err != nil {
-		log.Println(err)
-	}
-	err = bot.Respond(c, &tb.CallbackResponse{Text: "Validation passed!"})
-	if err != nil {
-		log.Println(err)
+		if config.PrintSuccessAndFail == "show" {
+			_, err := bot.Edit(c.Message, config.AfterFailMessage)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if config.PrintSuccessAndFail == "del" {
+			err = bot.Delete(c.Message)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+
+		log.Printf("User: %v ban himself in chat: %v for: %v minutes", c.Sender, c.Message.Chat, config.BanDurations)
+	} else {
+		err := bot.Respond(c, &tb.CallbackResponse{Text: "Dummy button pressed!"})
+		if err != nil {
+			log.Println(err)
+		}
+
+		log.Printf("User: %v pressed dummy button in chat: %v", c.Sender, c.Message.Chat)
 	}
 }
 
