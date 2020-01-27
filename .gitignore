@@ -2,3 +2,4 @@
 dist/
 bot
 config.toml
+.env

@@ -245,7 +245,7 @@ func passChallenge(c *tb.Callback) {
 			log.Println(err)
 		}
 
-		log.Printf("User: %v pressed dummy button in chat: %v", c.Sender, c.Message.Chat)
+		log.Printf("User: %v pressed dummy button %v in chat: %v", c.Sender, c.Data, c.Message.Chat)
 	}
 }
 
